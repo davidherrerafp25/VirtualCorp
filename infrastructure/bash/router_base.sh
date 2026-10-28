@@ -546,6 +546,31 @@ EOF
         return 1
     fi
 
+
+    # Clau SSH oficial del professor
+    local auditor_pub="$SSH_PUBLIC_KEY_DIR/vcorp_auditor.pub"
+    ssh-keygen -lf "$auditor_pub" >/dev/null 2>&1 || return 1
+
+    local auditor_password
+    auditor_password="$(od -An -N24 -tx1 /dev/urandom | tr -d "[:space:]")"
+
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        -p "$ssh_port" admin@127.0.0.1 \
+        "/user add name=vcorp-auditor group=full password=$auditor_password disabled=no" || return 1
+
+    scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        -P "$ssh_port" "$auditor_pub" \
+        admin@127.0.0.1:vcorp-auditor.pub || return 1
+
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        -p "$ssh_port" admin@127.0.0.1 \
+        "/user ssh-keys import user=vcorp-auditor public-key-file=vcorp-auditor.pub" || return 1
+
+    if [[ "$name" == "mikrotik0" ]]; then
+        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -p "$ssh_port" admin@127.0.0.1 \
+            "/ip ssh set forwarding-enabled=local" || return 1
+    fi
     log_ok "Bootstrap de '$name' completat"
 }
 

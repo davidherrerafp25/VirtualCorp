@@ -23,7 +23,7 @@ usage() {
 VirtualCorp SSH Key Generator
 
 Genera les claus SSH del laboratori VirtualCorp:
-  - vcorp_auditor
+  - vcorp_auditor.pub (clau oficial del professor)
   - sysadmin
 
 Opcions:
@@ -203,7 +203,11 @@ mkdir -p "${PUBLIC_KEY_DIR}"
 
 check_repo_for_private_keys
 
-generate_key "vcorp_auditor"
+if [[ ! -s "${PUBLIC_KEY_DIR}/vcorp_auditor.pub" ]] ||
+   ! ssh-keygen -lf "${PUBLIC_KEY_DIR}/vcorp_auditor.pub" >/dev/null 2>&1; then
+    log_err "Falta la clau publica oficial del professor"
+    exit 1
+fi
 generate_key "vcorp_sysadmin"
 generate_mikrotik_key
 
@@ -218,8 +222,7 @@ VirtualCorp SSH Keys generades correctament
 ==================================================
 
 Privades (LOCAL):
-  ${PRIVATE_KEY_DIR}/vcorp_auditor
-  ${PRIVATE_KEY_DIR}/sysadmin
+    ${PRIVATE_KEY_DIR}/sysadmin
 
 Públiques (REPO):
   ${PUBLIC_KEY_DIR}/vcorp_auditor.pub
