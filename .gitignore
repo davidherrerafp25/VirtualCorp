@@ -208,3 +208,23 @@ __pycache__/
 venv/
 .venv/
 
+/artifacts/
+*.iso
+*.vdi
+*.vbox
+*.vbox-prev
+/artifacts/
+*.iso
+*.vdi
+*.vbox
+*.vbox-prev
+/artifacts/
+*.iso
+*.vdi
+*.vbox
+*.vbox-prev
+/artifacts/
+*.iso
+*.vdi
+*.vbox
+*.vbox-prev

@@ -40,3 +40,9 @@ ssh-keys:
 
 routeros-box:
 	"$(BOOTSTRAP_DIR)/create_mikrotik_box.sh"
+
+.PHONY: create_templates deploy_equipment
+create_templates:
+	"$(BASH_DIR)/create_templates.sh"
+deploy_equipment:
+	"$(BASH_DIR)/deploy_equipment.sh"

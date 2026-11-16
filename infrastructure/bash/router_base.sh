@@ -40,6 +40,15 @@ check_prerequisites() {
 # =========================================================
 # CREACIÓ DE LA PLANTILLA (TEMPLATE)
 # =========================================================
+
+pedir_password_router() {
+    if [[ -z "${VCORP_ROUTER_PASSWORD:-}" ]]; then
+        read -r -s -p "Contraseña de sysadmin RouterOS: " VCORP_ROUTER_PASSWORD </dev/tty || return 1
+        printf '\n' >/dev/tty
+        [[ -n "$VCORP_ROUTER_PASSWORD" ]] || return 1
+    fi
+}
+
 create_router_template() {
     local template_name="${VM_NAME:-routeros_template}"
     local router_nics="${ROUTER_NICS:-8}"
@@ -135,6 +144,7 @@ create_router_template() {
 
     log_info "Configuring RouterOS users + SSH"
 
+    pedir_password_router || return 1
     ssh \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
@@ -145,7 +155,7 @@ create_router_template() {
 /ip service enable ssh
 
 # create sysadmin user
-/user add name=sysadmin group=full password="Asdqwe!23" comment="sysadmin user" disabled=no
+/user add name=sysadmin group=full password="${VCORP_ROUTER_PASSWORD}" comment="sysadmin user" disabled=no
 
 EOF
 
@@ -499,14 +509,15 @@ bootstrap_routeros() {
 
     log_info "Configurant usuari sysadmin"
 
+    pedir_password_router || return 1
     ssh \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -p "$ssh_port" \
-        admin@127.0.0.1 <<'EOF'
+        admin@127.0.0.1 <<EOF
 
 /ip service enable ssh
-/user add name=sysadmin group=full password="Asdqwe!23" comment="sysadmin user" disabled=no
+/user add name=sysadmin group=full password="${VCORP_ROUTER_PASSWORD}" comment="sysadmin user" disabled=no
 
 EOF
 
