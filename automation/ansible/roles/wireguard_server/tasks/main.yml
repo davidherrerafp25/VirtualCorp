@@ -1,0 +1,126 @@
+---
+- name: Comprovar interfície WireGuard
+  community.routeros.command:
+    commands: "/interface wireguard print count-only where name={{ wg_interface }}"
+  register: wg_interface_check
+  changed_when: false
+
+- name: Crear interfície WireGuard
+  community.routeros.command:
+    commands: "/interface wireguard add name={{ wg_interface }} listen-port={{ wg_port }}"
+  when: wg_interface_check.stdout[0] | trim | int == 0
+
+- name: Comprovar adreça WireGuard
+  community.routeros.command:
+    commands: "/ip address print count-only where interface={{ wg_interface }}"
+  register: wg_address_check
+  changed_when: false
+
+- name: Configurar adreça WireGuard
+  community.routeros.command:
+    commands: "/ip address add address={{ wg_server_address }} interface={{ wg_interface }}"
+  when: wg_address_check.stdout[0] | trim | int == 0
+
+- name: Comprovar peer WireGuard
+  community.routeros.command:
+    commands: /interface wireguard peers print count-only where comment=vcorp-client
+  register: wg_peer_check
+  changed_when: false
+
+- name: Crear peer WireGuard
+  community.routeros.command:
+    commands: '/interface wireguard peers add interface={{ wg_interface }} public-key="{{ hostvars["localhost"]["wg_client_public_key"] }}" allowed-address={{ wg_client_address }} comment=vcorp-client'
+  when: wg_peer_check.stdout[0] | trim | int == 0
+
+- name: Comprovar xarxes autoritzades
+  community.routeros.command:
+    commands: "/ip firewall address-list print count-only where list=vcorp-wg-allowed and address={{ item }}"
+  loop: "{{ wg_allowed_networks }}"
+  register: wg_networks_check
+  changed_when: false
+
+- name: Afegir xarxes autoritzades
+  community.routeros.command:
+    commands: "/ip firewall address-list add list=vcorp-wg-allowed address={{ item.item }} comment=vcorp-wg"
+  loop: "{{ wg_networks_check.results }}"
+  when: item.stdout[0] | trim | int == 0
+
+- name: Comprovar port WireGuard
+  community.routeros.command:
+    commands: /ip firewall filter print count-only where comment=vcorp-wg-udp
+  register: wg_udp_check
+  changed_when: false
+
+- name: Permetre port UDP
+  community.routeros.command:
+    commands:
+      - "/ip firewall filter add chain=input action=accept in-interface=ether1 protocol=udp dst-port={{ wg_port }} comment=vcorp-wg-udp"
+      - /ip firewall filter move [find where comment=vcorp-wg-udp] destination=0
+  when: wg_udp_check.stdout[0] | trim | int == 0
+
+- name: Comprovar bloqueig de destinacions
+  community.routeros.command:
+    commands: /ip firewall filter print count-only where comment=vcorp-wg-deny
+  register: wg_deny_check
+  changed_when: false
+
+- name: Bloquejar destinacions no autoritzades
+  community.routeros.command:
+    commands:
+      - "/ip firewall filter add chain=forward action=drop in-interface={{ wg_interface }} comment=vcorp-wg-deny"
+      - /ip firewall filter move [find where comment=vcorp-wg-deny] destination=0
+  when: wg_deny_check.stdout[0] | trim | int == 0
+
+- name: Comprovar acces autoritzat
+  community.routeros.command:
+    commands: /ip firewall filter print count-only where comment=vcorp-wg-allow
+  register: wg_allow_check
+  changed_when: false
+
+- name: Permetre xarxes autoritzades
+  community.routeros.command:
+    commands:
+      - "/ip firewall filter add chain=forward action=accept in-interface={{ wg_interface }} dst-address-list=vcorp-wg-allowed comment=vcorp-wg-allow"
+      - /ip firewall filter move [find where comment=vcorp-wg-allow] destination=0
+  when: wg_allow_check.stdout[0] | trim | int == 0
+
+- name: Consultar clau publica del router
+  ansible.builtin.command:
+    argv:
+      - ssh
+      - -i
+      - "{{ hostvars['mikrotik0']['ansible_ssh_private_key_file'] }}"
+      - -p
+      - "{{ hostvars['mikrotik0']['ansible_port'] | string }}"
+      - -o
+      - BatchMode=yes
+      - -o
+      - StrictHostKeyChecking=accept-new
+      - "{{ hostvars['mikrotik0']['ansible_user'] }}@{{ hostvars['mikrotik0']['ansible_host'] }}"
+      - ':put [/interface/wireguard/get [find where name={{ wg_interface }}] public-key]'
+  delegate_to: localhost
+  register: wg_public_result
+  changed_when: false
+
+- name: Validar clau publica
+  ansible.builtin.assert:
+    that:
+      - (wg_public_result.stdout | trim) is match('^[A-Za-z0-9+/]{43}=$')
+
+- name: Guardar clau publica del router
+  ansible.builtin.set_fact:
+    wg_server_public_key: "{{ wg_public_result.stdout | trim }}"
+
+- name: Comprovar ordre del tallafoc
+  community.routeros.command:
+    commands: /ip firewall filter print detail
+  register: wg_firewall_order
+  changed_when: false
+
+- name: Situar permis abans del bloqueig
+  community.routeros.command:
+    commands: '/ip firewall filter move [find where comment="vcorp-wg-allow"] destination=[find where comment="vcorp-wg-deny"]'
+  when:
+    - "'vcorp-wg-allow' in wg_firewall_order.stdout[0]"
+    - "'vcorp-wg-deny' in wg_firewall_order.stdout[0]"
+    - "wg_firewall_order.stdout[0].find('vcorp-wg-allow') > wg_firewall_order.stdout[0].find('vcorp-wg-deny')"

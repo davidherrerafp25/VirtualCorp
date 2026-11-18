@@ -1,0 +1,14 @@
+wg_interface: wg-vcorp
+wg_port: 51820
+wg_server_address: 10.11.10.1/24
+wg_client_address: 10.11.10.2/32
+wg_tunnel: 10.11.10.0/24
+wg_allowed_networks:
+  - 10.11.0.0/24
+  - 10.11.1.0/24
+  - 10.11.2.0/24
+  - 10.11.3.0/24
+wg_endpoint: 127.0.0.1
+wg_dir: "{{ playbook_dir }}/../../../artifacts/vpn"
+wg_client_key_file: "{{ wg_dir }}/client.key"
+wg_client_conf: "{{ wg_dir }}/vcorp.conf"

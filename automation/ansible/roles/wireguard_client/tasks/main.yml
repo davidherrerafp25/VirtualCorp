@@ -1,0 +1,59 @@
+---
+- name: Crear carpeta privada
+  ansible.builtin.file:
+    path: "{{ wg_dir }}"
+    state: directory
+    mode: "0700"
+  when: wg_phase == 'keys'
+
+- name: Comprovar clau privada
+  ansible.builtin.stat:
+    path: "{{ wg_client_key_file }}"
+  register: client_key_stat
+  when: wg_phase == 'keys'
+
+- name: Generar clau privada
+  ansible.builtin.command:
+    argv: [wg, genkey]
+  register: client_key_new
+  no_log: true
+  when: wg_phase == 'keys' and not client_key_stat.stat.exists
+
+- name: Desar clau privada
+  ansible.builtin.copy:
+    dest: "{{ wg_client_key_file }}"
+    content: "{{ client_key_new.stdout }}\n"
+    mode: "0600"
+  no_log: true
+  when: wg_phase == 'keys' and not client_key_stat.stat.exists
+
+- name: Obtenir clau publica
+  ansible.builtin.command:
+    argv: [wg, pubkey]
+    stdin: "{{ lookup('ansible.builtin.file', wg_client_key_file) }}"
+  register: client_public
+  changed_when: false
+  no_log: true
+  when: wg_phase == 'keys'
+
+- name: Guardar clau publica
+  ansible.builtin.set_fact:
+    wg_client_public_key: "{{ client_public.stdout | trim }}"
+  when: wg_phase == 'keys'
+
+- name: Crear configuracio del client
+  ansible.builtin.copy:
+    dest: "{{ wg_client_conf }}"
+    mode: "0600"
+    content: |
+      [Interface]
+      PrivateKey = {{ lookup('ansible.builtin.file', wg_client_key_file) | trim }}
+      Address = {{ wg_client_address }}
+
+      [Peer]
+      PublicKey = {{ hostvars['mikrotik0']['wg_server_public_key'] }}
+      Endpoint = {{ wg_endpoint }}:{{ wg_port }}
+      AllowedIPs = {{ (wg_allowed_networks + [wg_tunnel]) | join(', ') }}
+      PersistentKeepalive = 25
+  no_log: true
+  when: wg_phase == 'config'

@@ -1,0 +1,48 @@
+---
+- name: Preparar client WireGuard
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../vars/wireguard.yml
+  tasks:
+    - name: Generar claus del client
+      ansible.builtin.include_role:
+        name: wireguard_client
+      vars:
+        wg_phase: keys
+
+- name: Configurar WireGuard al router
+  hosts: mikrotik0
+  gather_facts: false
+  vars_files:
+    - ../vars/wireguard.yml
+  roles:
+    - wireguard_server
+
+- name: Preparar acces del client
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../vars/wireguard.yml
+  tasks:
+    - name: Consultar reenvios de VirtualBox
+      ansible.builtin.command:
+        argv: [VBoxManage, showvminfo, mikrotik0, --machinereadable]
+      register: vbox_info
+      changed_when: false
+
+    - name: Reenviar port UDP
+      ansible.builtin.command:
+        argv:
+          - VBoxManage
+          - controlvm
+          - mikrotik0
+          - natpf1
+          - "vcorp-wg,udp,127.0.0.1,{{ wg_port }},,{{ wg_port }}"
+      when: "('vcorp-wg,udp,127.0.0.1,' ~ wg_port ~ ',,' ~ wg_port) not in vbox_info.stdout"
+
+    - name: Escriure configuracio del client
+      ansible.builtin.include_role:
+        name: wireguard_client
+      vars:
+        wg_phase: config
