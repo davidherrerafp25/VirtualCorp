@@ -1,0 +1,32 @@
+hostname	type	network	mac	ip	allocation
+websrv	server	dmz	08:00:27:b0:2b:2b	10.11.0.200	reserva
+dbsrv	server	privada	08:00:27:d5:98:54	10.11.0.140	reserva
+infosrv	server	privada	08:00:27:72:62:71	10.11.0.141	reserva
+printer0	server	pl0	08:00:27:ea:50:88	10.11.0.10	reserva
+printer1	server	pl1	08:00:27:07:09:f0	10.11.1.10	reserva
+printer2	server	pl2	08:00:27:c2:ea:d6	10.11.2.10	reserva
+printer3	server	pl3	08:00:27:82:1b:8c	10.11.3.10	reserva
+expo1	desktop	pl0	08:00:27:80:78:36		dinamica
+expo2	desktop	pl0	08:00:27:a5:9e:de		dinamica
+expo3	desktop	pl0	08:00:27:56:df:6f		dinamica
+expo4	desktop	pl0	08:00:27:b7:26:c3		dinamica
+conserge1	desktop	pl0	08:00:27:36:9f:30		dinamica
+conserge2	desktop	pl0	08:00:27:5a:a6:9a		dinamica
+project1-web	server	pl1	08:00:27:f2:1e:8b	10.11.1.11	reserva
+project1-data	server	pl1	08:00:27:1f:9b:a8	10.11.1.12	reserva
+project2-web	server	pl1	08:00:27:c0:21:2a	10.11.1.13	reserva
+project2-data	server	pl1	08:00:27:b0:86:0f	10.11.1.14	reserva
+project3-web	server	pl2	08:00:27:72:9e:10	10.11.2.11	reserva
+project3-data	server	pl2	08:00:27:ae:dc:f2	10.11.2.12	reserva
+direccio1	desktop	pl3_direccio	08:00:27:38:6d:97		dinamica
+direccio2	desktop	pl3_direccio	08:00:27:96:a5:ed		dinamica
+direccio3	desktop	pl3_direccio	08:00:27:a0:90:7a		dinamica
+dev-p1-1	desktop	pl1	08:00:27:60:43:78		dinamica
+dev-p1-2	desktop	pl1	08:00:27:2b:00:cb		dinamica
+dev-p1-3	desktop	pl1	08:00:27:1e:a3:e1		dinamica
+dev-p2-1	desktop	pl2	08:00:27:af:64:76		dinamica
+dev-p2-2	desktop	pl2	08:00:27:fb:ea:58		dinamica
+dev-p2-3	desktop	pl2	08:00:27:34:f2:fb		dinamica
+departament-1	desktop	pl3	08:00:27:9a:15:42		dinamica
+departament-2	desktop	pl3	08:00:27:ca:d4:a2		dinamica
+departament-3	desktop	pl3	08:00:27:59:79:03		dinamica

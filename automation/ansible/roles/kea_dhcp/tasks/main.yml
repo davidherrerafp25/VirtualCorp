@@ -1,0 +1,46 @@
+- name: Instalar Kea DHCPv4
+  ansible.builtin.apt:
+    name: kea-dhcp4-server
+    state: present
+    update_cache: true
+
+- name: Configurar Kea DHCPv4
+  ansible.builtin.copy:
+    src: kea-dhcp4.conf
+    dest: /etc/kea/kea-dhcp4.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/kea-dhcp4 -t %s
+  notify: Reiniciar Kea
+
+- name: Crear directorio de configuración systemd
+  ansible.builtin.file:
+    path: /etc/systemd/system/kea-dhcp4-server.service.d
+    state: directory
+    mode: "0755"
+
+- name: Esperar a que la red esté disponible
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/kea-dhcp4-server.service.d/network.conf
+    mode: "0644"
+    content: |
+      [Unit]
+      Wants=network-online.target
+      After=network-online.target networking.service
+      [Service]
+      ExecStartPre=/usr/bin/timeout 45 /bin/sh -c 'until ip -4 addr show dev eth0 scope global | grep -q "inet "; do sleep 1; done'
+  notify: Reiniciar Kea
+
+- name: Recargar systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Activar Kea
+  ansible.builtin.systemd_service:
+    name: kea-dhcp4-server
+    enabled: true
+    state: started
+
+- name: Aplicar configuración
+  ansible.builtin.meta: flush_handlers

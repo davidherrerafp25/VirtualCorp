@@ -19,3 +19,31 @@ all:
           ansible_port: 2200
           ansible_user: sysadmin+cet1024w
           ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/vcorp_sysadmin"
+        mikrotik1:
+          ansible_connection: ansible.netcommon.network_cli
+          ansible_network_os: community.routeros.routeros
+          ansible_host: 10.11.0.129
+          ansible_port: 22
+          ansible_user: sysadmin+cet1024w
+          ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/vcorp_sysadmin"
+        mikrotik2:
+          ansible_connection: ansible.netcommon.network_cli
+          ansible_network_os: community.routeros.routeros
+          ansible_host: 10.11.1.1
+          ansible_port: 22
+          ansible_user: sysadmin+cet1024w
+          ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/vcorp_sysadmin"
+        mikrotik3:
+          ansible_connection: ansible.netcommon.network_cli
+          ansible_network_os: community.routeros.routeros
+          ansible_host: 10.11.3.1
+          ansible_port: 22
+          ansible_user: sysadmin+cet1024w
+          ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/vcorp_sysadmin"
+    dhcp_servers:
+      hosts:
+        dhcp01:
+          ansible_host: 10.11.0.136
+          ansible_user: root
+          ansible_ssh_private_key_file: "{{ lookup('env', 'HOME') }}/.ssh/vcorp_sysadmin"
+          ansible_python_interpreter: /usr/bin/python3

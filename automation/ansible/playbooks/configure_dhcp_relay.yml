@@ -1,0 +1,46 @@
+- name: Configurar DHCP Relay
+  hosts: routers
+  gather_facts: false
+
+  vars:
+    dhcp_server: 10.11.0.136
+    relays:
+      mikrotik0:
+        - {name: dmz, interface: ether3, ip: 10.11.0.193}
+      mikrotik1:
+        - {name: pl0, interface: ether4, ip: 10.11.0.1}
+      mikrotik2:
+        - {name: pl1, interface: ether4, ip: 10.11.1.1}
+        - {name: pl2, interface: ether5, ip: 10.11.2.1}
+      mikrotik3:
+        - {name: pl3, interface: ether3, ip: 10.11.3.1}
+        - {name: pl3_direccio, interface: ether4, ip: 10.11.3.129}
+
+  tasks:
+    - name: Configurar relay de cada red
+      community.routeros.command:
+        commands:
+          - >-
+            :if ([:len [/ip dhcp-relay find where name="{{ item.name }}"]] = 0)
+            do={
+            /ip dhcp-relay add name="{{ item.name }}"
+            interface={{ item.interface }}
+            dhcp-server={{ dhcp_server }}
+            local-address={{ item.ip }} local-address-as-src-ip=yes disabled=no
+            } else={
+            /ip dhcp-relay set [find where name="{{ item.name }}"]
+            interface={{ item.interface }}
+            dhcp-server={{ dhcp_server }}
+            local-address={{ item.ip }} local-address-as-src-ip=yes disabled=no
+            }
+      loop: "{{ relays[inventory_hostname] }}"
+
+    - name: Comprobar DHCP Relay
+      community.routeros.command:
+        commands:
+          - /ip dhcp-relay print detail
+      register: resultado
+
+    - name: Mostrar configuración
+      ansible.builtin.debug:
+        var: resultado.stdout_lines

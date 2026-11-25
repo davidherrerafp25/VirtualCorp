@@ -1,0 +1,5 @@
+- name: Configurar servidor DHCP
+  hosts: dhcp_servers
+  gather_facts: false
+  roles:
+    - kea_dhcp

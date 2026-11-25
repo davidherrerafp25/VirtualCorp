@@ -228,3 +228,8 @@ venv/
 *.vdi
 *.vbox
 *.vbox-prev
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfplan
+**/terraform.local.tfvars

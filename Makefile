@@ -46,3 +46,11 @@ create_templates:
 	"$(BASH_DIR)/create_templates.sh"
 deploy_equipment:
 	"$(BASH_DIR)/deploy_equipment.sh"
+
+.PHONY: deploy_dhcp
+deploy_dhcp:
+	terraform -chdir=infrastructure/terraform/proxmox init
+	terraform -chdir=infrastructure/terraform/proxmox apply -var-file=terraform.local.tfvars -auto-approve
+	python3 automation/scripts/generate_kea_config.py
+	cd automation/ansible && ansible-playbook playbooks/configure_dhcp_dns.yml
+	cd automation/ansible && ansible-playbook playbooks/configure_dhcp_relay.yml
