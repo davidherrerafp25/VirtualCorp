@@ -1,0 +1,5 @@
+- name: Configurar servidor DNS
+  hosts: bind_dns
+  gather_facts: false
+  roles:
+    - bind_dns

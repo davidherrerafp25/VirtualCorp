@@ -1,0 +1,4 @@
+- name: Recargar BIND9
+  ansible.builtin.systemd_service:
+    name: named
+    state: reloaded

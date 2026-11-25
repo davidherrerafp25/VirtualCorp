@@ -1,0 +1,85 @@
+- name: Instalar servicio DNS
+  ansible.builtin.import_tasks: install.yml
+
+- name: Inicializar direcciones DNS
+  ansible.builtin.set_fact:
+    bind_ips: {}
+
+- name: Obtener reservas del plan de direccionamiento
+  ansible.builtin.set_fact:
+    bind_ips: "{{ bind_ips | combine({campos[0]: campos[4]}) }}"
+  vars:
+    campos: "{{ item.split('\t') }}"
+  loop: "{{ lookup('ansible.builtin.file', playbook_dir + '/../../../configs/address-plan.tsv').splitlines()[1:] }}"
+  when: campos[5] == 'reserva'
+
+- name: Obtener direcciones de servicios Terraform
+  ansible.builtin.set_fact:
+    bind_ips: "{{ bind_ips | combine({item: service_ip}) }}"
+  vars:
+    service_ip: "{{ hostvars[item].vcorp_ipv4_cidr.split('/')[0] if hostvars[item].vcorp_ipv4_cidr is defined else (terraform_service_ip_assignments | selectattr('hostname', 'equalto', item) | map(attribute='ip_address') | first) }}"
+  loop: "{{ groups['terraform_services'] | sort }}"
+
+- name: Crear directorio temporal de validacion
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: bind-validation-
+  register: bind_stage
+  changed_when: false
+
+- name: Validar y aplicar configuracion DNS
+  block:
+    - name: Generar configuracion temporal
+      ansible.builtin.include_tasks: render.yml
+      vars:
+        bind_target_dir: "{{ bind_stage.path }}"
+        bind_staging: true
+
+    - name: Crear configuracion principal temporal
+      ansible.builtin.copy:
+        dest: "{{ bind_stage.path }}/named.conf"
+        mode: "0644"
+        content: |
+          include "{{ bind_stage.path }}/named.conf.options";
+          include "{{ bind_stage.path }}/named.conf.local";
+          include "/etc/bind/named.conf.root-hints";
+      changed_when: false
+
+    - name: Validar cada zona DNS
+      ansible.builtin.command:
+        argv:
+          - named-checkzone
+          - "{{ item.name }}"
+          - "{{ bind_stage.path }}/db.{{ item.name }}"
+      loop: "{{ bind_zones }}"
+      changed_when: false
+
+    - name: Validar configuracion completa
+      ansible.builtin.command: "named-checkconf -z {{ bind_stage.path }}/named.conf"
+      changed_when: false
+
+    - name: Aplicar configuracion validada
+      ansible.builtin.include_tasks: render.yml
+      vars:
+        bind_target_dir: /etc/bind
+        bind_staging: false
+
+    - name: Comprobar configuracion definitiva
+      ansible.builtin.command: named-checkconf -z
+      changed_when: false
+
+    - name: Activar BIND9
+      ansible.builtin.systemd_service:
+        name: named
+        enabled: true
+        state: started
+
+    - name: Aplicar cambios DNS
+      ansible.builtin.meta: flush_handlers
+
+  always:
+    - name: Eliminar directorio temporal
+      ansible.builtin.file:
+        path: "{{ bind_stage.path }}"
+        state: absent
+      changed_when: false

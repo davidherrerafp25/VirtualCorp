@@ -1,0 +1,68 @@
+bind_domain: delegacio11
+bind_forwarder: 8.8.8.8
+bind_serial: 2026112501
+bind_ttl: 3600
+
+bind_trusted_networks:
+  - 127.0.0.0/8
+  - 10.11.0.0/25
+  - 10.11.0.128/26
+  - 10.11.0.192/27
+  - 10.11.1.0/24
+  - 10.11.2.0/24
+  - 10.11.3.0/25
+  - 10.11.3.128/25
+  - 10.11.10.0/24
+
+bind_zones:
+  - name: "{{ bind_domain }}.com"
+    ns: "dns01.{{ bind_domain }}.com."
+    records:
+      dns01: dns01
+      websrv: websrv
+
+  - name: "{{ bind_domain }}.lan"
+    ns: "dns01.{{ bind_domain }}.lan."
+    delegations: [planta00, planta01, planta02, planta03]
+    records:
+      dns01: dns01
+      dhcp01: dhcp01
+      websrv: websrv
+      dbsrv: dbsrv
+      infosrv: infosrv
+      printer0: printer0
+      printer1: printer1
+      printer2: printer2
+      printer3: printer3
+      project1-web: project1-web
+      project1-data: project1-data
+      project2-web: project2-web
+      project2-data: project2-data
+      project3-web: project3-web
+      project3-data: project3-data
+
+  - name: "planta00.{{ bind_domain }}.lan"
+    ns: "dns01.{{ bind_domain }}.lan."
+    records:
+      printer: printer0
+
+  - name: "planta01.{{ bind_domain }}.lan"
+    ns: "dns01.{{ bind_domain }}.lan."
+    records:
+      printer: printer1
+      project1-web: project1-web
+      project1-data: project1-data
+      project2-web: project2-web
+      project2-data: project2-data
+
+  - name: "planta02.{{ bind_domain }}.lan"
+    ns: "dns01.{{ bind_domain }}.lan."
+    records:
+      printer: printer2
+      project3-web: project3-web
+      project3-data: project3-data
+
+  - name: "planta03.{{ bind_domain }}.lan"
+    ns: "dns01.{{ bind_domain }}.lan."
+    records:
+      printer: printer3

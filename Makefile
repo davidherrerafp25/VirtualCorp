@@ -51,6 +51,11 @@ deploy_equipment:
 deploy_dhcp:
 	terraform -chdir=infrastructure/terraform/proxmox init
 	terraform -chdir=infrastructure/terraform/proxmox apply -var-file=terraform.local.tfvars -auto-approve
-	python3 automation/scripts/generate_kea_config.py
 	cd automation/ansible && ansible-playbook playbooks/configure_dhcp_dns.yml
 	cd automation/ansible && ansible-playbook playbooks/configure_dhcp_relay.yml
+
+.PHONY: deploy_dns
+deploy_dns: deploy_dhcp
+	ssh -i ~/.ssh/vcorp_sysadmin root@10.11.0.133 "pct exec 204 -- sh -c 'if ! ip -4 addr show eth0 | grep -q 10.11.0.137/26; then ifdown eth0 || true; ifup eth0; fi'"
+	ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/vcorp_sysadmin root@10.11.0.137 hostname
+	cd automation/ansible && ansible-playbook playbooks/configure_bind_dns.yml

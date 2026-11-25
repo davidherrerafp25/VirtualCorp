@@ -1,0 +1,17 @@
+$TTL {{ bind_ttl }}
+@ IN SOA {{ item.ns }} admin.{{ item.name }}. (
+    {{ bind_serial }}
+    3600
+    900
+    604800
+    3600
+)
+@ IN NS {{ item.ns }}
+
+{% for name, host in item.records | dictsort %}
+{{ name }} IN A {{ bind_ips[host] }}
+{% endfor %}
+
+{% for child in item.delegations | default([]) %}
+{{ child }} IN NS {{ item.ns }}
+{% endfor %}

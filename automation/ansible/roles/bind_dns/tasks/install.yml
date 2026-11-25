@@ -1,0 +1,35 @@
+- name: Comprobar paquetes instalados
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Instalar BIND9
+  when: "'bind9' not in ansible_facts.packages or 'bind9-dnsutils' not in ansible_facts.packages"
+  block:
+    - name: Guardar resolucion DNS actual
+      ansible.builtin.slurp:
+        src: /etc/resolv.conf
+      register: dns_resolv_original
+
+    - name: Configurar DNS temporal
+      ansible.builtin.copy:
+        content: "nameserver 8.8.8.8\n"
+        dest: /etc/resolv.conf
+        follow: true
+
+    - name: Instalar paquetes DNS
+      ansible.builtin.apt:
+        name:
+          - bind9
+          - bind9-utils
+          - bind9-dnsutils
+        state: present
+        update_cache: true
+        policy_rc_d: 101
+
+  always:
+    - name: Restaurar resolucion DNS
+      ansible.builtin.copy:
+        content: "{{ dns_resolv_original.content | b64decode }}"
+        dest: /etc/resolv.conf
+        follow: true
+      when: dns_resolv_original.content is defined

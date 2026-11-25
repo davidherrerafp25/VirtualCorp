@@ -233,3 +233,4 @@ venv/
 **/*.tfstate.*
 **/*.tfplan
 **/terraform.local.tfvars
+/automation/ansible/inventories/proxmox_lxc.yml

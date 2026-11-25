@@ -1,12 +1,39 @@
+- name: Inicializar reservas Terraform
+  ansible.builtin.set_fact:
+    kea_terraform_services: []
+
+- name: Obtener servicios del inventario Terraform
+  ansible.builtin.set_fact:
+    kea_terraform_services: "{{ kea_terraform_services + [servicio] }}"
+  vars:
+    servicio:
+      hostname: "{{ hostvars[item].hostname }}"
+      mac: "{{ hostvars[item].vcorp_mac_address }}"
+      network: "{{ hostvars[item].vcorp_network }}"
+      addresses: "{{ [hostvars[item].vcorp_ipv4_cidr.split('/')[0]] if hostvars[item].vcorp_ipv4_cidr is defined else (terraform_service_ip_assignments | selectattr('hostname', 'equalto', item) | map(attribute='ip_address') | list) }}"
+  loop: "{{ groups['terraform_services'] | sort }}"
+
+- name: Generar configuracion Kea desde el inventario
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ role_path }}/../../../scripts/generate_kea_config.py"
+    stdin: "{{ kea_terraform_services | to_json }}"
+  delegate_to: localhost
+  register: kea_generated
+  changed_when: false
+
 - name: Instalar Kea DHCPv4
   ansible.builtin.apt:
     name: kea-dhcp4-server
     state: present
     update_cache: true
+    cache_valid_time: 3600
 
 - name: Configurar Kea DHCPv4
   ansible.builtin.copy:
-    src: kea-dhcp4.conf
+    content: |
+      {{ kea_generated.stdout }}
     dest: /etc/kea/kea-dhcp4.conf
     owner: root
     group: root

@@ -1,0 +1,24 @@
+acl trusted {
+{% for network in bind_trusted_networks %}
+    {{ network }};
+{% endfor %}
+};
+
+options {
+    directory "/var/cache/bind";
+
+    listen-on port 53 { any; };
+    listen-on-v6 { none; };
+
+    recursion yes;
+    max-cache-size 128m;
+    allow-query { trusted; };
+    allow-recursion { trusted; };
+    allow-query-cache { trusted; };
+    allow-transfer { none; };
+
+    forwarders { {{ bind_forwarder }}; };
+    forward only;
+
+    dnssec-validation auto;
+};

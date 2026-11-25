@@ -1,0 +1,25 @@
+- name: Generar opciones y declaracion de zonas
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ bind_target_dir }}/{{ item }}"
+    owner: root
+    group: bind
+    mode: "0644"
+  loop:
+    - named.conf.options
+    - named.conf.local
+  changed_when: false if bind_staging else (render_config.changed | default(false))
+  register: render_config
+  notify: Recargar BIND9
+
+- name: Generar registros DNS
+  ansible.builtin.template:
+    src: zone.j2
+    dest: "{{ bind_target_dir }}/db.{{ item.name }}"
+    owner: root
+    group: bind
+    mode: "0644"
+  loop: "{{ bind_zones }}"
+  changed_when: false if bind_staging else (render_zone.changed | default(false))
+  register: render_zone
+  notify: Recargar BIND9

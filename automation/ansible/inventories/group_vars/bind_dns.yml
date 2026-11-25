@@ -1,0 +1,1 @@
+ansible_host: "{{ terraform_service_ip_assignments | selectattr('hostname', 'equalto', inventory_hostname) | map(attribute='ip_address') | first }}"

@@ -1,4 +1,6 @@
 import csv
+import sys
+import re
 import json
 from ipaddress import ip_address, ip_network
 from pathlib import Path
@@ -17,6 +19,34 @@ networks = [
 
 with (root / "configs/address-plan.tsv").open() as f:
     devices = list(csv.DictReader(f, delimiter="\t"))
+
+
+services = json.load(sys.stdin)
+
+for service in services:
+    if len(service["addresses"]) != 1:
+        raise ValueError(f"IP no resuelta o duplicada: {service['hostname']}")
+
+    if service["network"] not in {n[0] for n in networks}:
+        raise ValueError(f"Red incorrecta: {service['hostname']}")
+
+    if not re.fullmatch(r"(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}", service["mac"]):
+        raise ValueError(f"MAC incorrecta: {service['hostname']}")
+
+    devices.append({
+        "hostname": service["hostname"],
+        "network": service["network"],
+        "mac": service["mac"].lower(),
+        "ip": service["addresses"][0],
+        "allocation": "reserva"
+    })
+
+for field in ("hostname", "mac", "ip"):
+    values = [
+        d[field].lower() for d in devices if d[field]
+    ]
+    if len(values) != len(set(values)):
+        raise ValueError(f"Valor duplicado: {field}")
 
 subnets = []
 
@@ -68,7 +98,4 @@ config = {
     }
 }
 
-dest = root / "automation/ansible/roles/kea_dhcp/files/kea-dhcp4.conf"
-dest.write_text(json.dumps(config, indent=2) + "\n")
-
-print(f"Configuradas {len(subnets)} redes y {sum(len(s['reservations']) for s in subnets)} reservas")
+print(json.dumps(config, indent=2))
